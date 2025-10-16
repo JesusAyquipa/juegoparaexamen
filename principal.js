@@ -2,20 +2,20 @@ var juego = new Phaser.Game(370, 550, Phaser.CANVAS, 'bloque_juego');
 var fondoJuego;
 var persona;
 var sonidoFondo;
-var bola;
+var estrella;
 var textoNivel;
 var nivelActual = 1;
 var audioIniciado = false;
-var pinchos;
-var numeroPinchos = 2;
+var rocas;
+var numeroRocas = 2;
 var gameOver = false;
 var teclaDerecha, teclaIzquierda, teclaArriba, teclaAbajo;
 
 var estadoPrincipal = {
     preload: function (){
-        juego.load.image('fondo', 'fondo3.jpg');
+        juego.load.image('fondo', 'montaña.jpg');
         juego.load.spritesheet('personas','persona.png',64,64);
-        juego.load.audio('sonido','sonido.mp3');
+        juego.load.audio('sonido','audio2.mp3');
     },
     
     create: function(){
@@ -45,16 +45,16 @@ var estadoPrincipal = {
         persona.animations.add('izquierda',[9,10,11,12,13,14,15,16,17],10,true);
         persona.animations.add('abajo',[18,19,20,21,22,23,24,25,26],10,true);
 
-        pinchos = juego.add.group();
-        pinchos.enableBody = true;
+        rocas = juego.add.group();
+        rocas.enableBody = true;
 
-        crearBolaBonita();
-        crearPinchos();
+        crearEstrellaBonita();
+        crearRocas();
 
         textoNivel = juego.add.text(15, 15, 'NIVEL ' + nivelActual, 
             { 
                 font: 'bold 18px Arial', 
-                fill: '#FFD700', 
+                fill: '#27E0F5', 
                 stroke: '#8B4513',
                 strokeThickness: 3,
                 backgroundColor: 'rgba(139, 69, 19, 0.6)',
@@ -70,14 +70,14 @@ var estadoPrincipal = {
         
         juego.physics.startSystem(Phaser.Physics.ARCADE);
         juego.physics.arcade.enable(persona);
-        juego.physics.arcade.enable(bola);
+        juego.physics.arcade.enable(estrella);
         
         persona.body.collideWorldBounds = true;
-        bola.body.collideWorldBounds = true;
+        estrella.body.collideWorldBounds = true;
         
-        // Animación SOLO si la bola existe
-        if (bola && bola.exists) {
-            juego.add.tween(bola.scale).to({ x: 1.15, y: 1.15 }, 1200, Phaser.Easing.Elastic.Out, true, 0, -1, true);
+        // Animación SOLO si la estrella existe
+        if (estrella && estrella.exists) {
+            juego.add.tween(estrella.scale).to({ x: 1.15, y: 1.15 }, 1200, Phaser.Easing.Elastic.Out, true, 0, -1, true);
         }
     },
     
@@ -111,77 +111,102 @@ var estadoPrincipal = {
             persona.animations.stop();
         }
         
-        // Solo verificar colisiones si la bola existe
-        if (bola && bola.exists) {
-            juego.physics.arcade.overlap(persona, bola, alcanzarBola, null, this);
+        // Solo verificar colisiones si la estrella existe
+        if (estrella && estrella.exists) {
+            juego.physics.arcade.overlap(persona, estrella, alcanzarEstrella, null, this);
         }
         
-        juego.physics.arcade.overlap(persona, pinchos, tocarPincho, null, this);
+        juego.physics.arcade.overlap(persona, rocas, tocarRoca, null, this);
     }
 };
 
-function crearBolaBonita() {
-    var x = juego.rnd.integerInRange(60, juego.width - 60);
-    var y = juego.rnd.integerInRange(60, juego.height - 60);
+function crearEstrellaBonita() {
+    var posX = juego.rnd.integerInRange(60, juego.width - 60);  // Cambié a posX
+    var posY = juego.rnd.integerInRange(60, juego.height - 60); // Cambié a posY
     
     var bmd = juego.add.bitmapData(50, 50);
     
-    var grad = bmd.ctx.createRadialGradient(25, 25, 5, 25, 25, 25);
-    grad.addColorStop(0, '#FFFF00');
-    grad.addColorStop(0.4, '#FFA500');
-    grad.addColorStop(0.7, '#FF4500');
-    grad.addColorStop(1, '#DC143C');
-    
-    bmd.ctx.fillStyle = grad;
+    // Fondo dorado para la estrella
+    bmd.ctx.fillStyle = '#FFD700';
     bmd.ctx.beginPath();
     bmd.ctx.arc(25, 25, 25, 0, Math.PI * 2);
     bmd.ctx.fill();
     
-    var gradReflejo = bmd.ctx.createRadialGradient(15, 15, 0, 15, 15, 12);
+    // Dibujar estrella de 5 puntas
+    bmd.ctx.fillStyle = '#FFFF00';
+    bmd.ctx.beginPath();
+    
+    var spikes = 5;
+    var outerRadius = 25;
+    var innerRadius = 12;
+    var rotation = Math.PI / 2 * 3;
+    var centerX = 25;  // Usar centerX para el centro del bitmap
+    var centerY = 25;  // Usar centerY para el centro del bitmap
+    var step = Math.PI / spikes;
+    
+    bmd.ctx.moveTo(centerX, centerY - outerRadius);
+    
+    for (var i = 0; i < spikes; i++) {
+        var pointX = centerX + Math.cos(rotation) * outerRadius;  // Usar pointX
+        var pointY = centerY + Math.sin(rotation) * outerRadius;  // Usar pointY
+        bmd.ctx.lineTo(pointX, pointY);
+        rotation += step;
+        
+        pointX = centerX + Math.cos(rotation) * innerRadius;     // Usar pointX
+        pointY = centerY + Math.sin(rotation) * innerRadius;     // Usar pointY
+        bmd.ctx.lineTo(pointX, pointY);
+        rotation += step;
+    }
+    
+    bmd.ctx.lineTo(centerX, centerY - outerRadius);
+    bmd.ctx.closePath();
+    bmd.ctx.fill();
+    
+    // Destello en el centro
+    var gradReflejo = bmd.ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, 10);
     gradReflejo.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
     gradReflejo.addColorStop(1, 'rgba(255, 255, 255, 0)');
     
     bmd.ctx.fillStyle = gradReflejo;
     bmd.ctx.beginPath();
-    bmd.ctx.arc(15, 15, 12, 0, Math.PI * 2);
+    bmd.ctx.arc(centerX, centerY, 10, 0, Math.PI * 2);
     bmd.ctx.fill();
     
-    bmd.ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
-    bmd.ctx.beginPath();
-    bmd.ctx.arc(12, 12, 4, 0, Math.PI * 2);
-    bmd.ctx.fill();
-    
-    bmd.ctx.strokeStyle = '#FFD700';
+    // Borde dorado
+    bmd.ctx.strokeStyle = '#FFA500';
     bmd.ctx.lineWidth = 2;
     bmd.ctx.beginPath();
-    bmd.ctx.arc(25, 25, 25, 0, Math.PI * 2);
+    bmd.ctx.arc(centerX, centerY, 25, 0, Math.PI * 2);
     bmd.ctx.stroke();
     
+    // Resplandor
     bmd.ctx.strokeStyle = 'rgba(255, 215, 0, 0.4)';
     bmd.ctx.lineWidth = 4;
     bmd.ctx.beginPath();
-    bmd.ctx.arc(25, 25, 27, 0, Math.PI * 2);
+    bmd.ctx.arc(centerX, centerY, 27, 0, Math.PI * 2);
     bmd.ctx.stroke();
     
-    bola = juego.add.sprite(x, y, bmd);
-    bola.anchor.setTo(0.5);
+    estrella = juego.add.sprite(posX, posY, bmd);  // Usar posX y posY para la posición
+    estrella.anchor.setTo(0.5);
     
-    juego.physics.arcade.enable(bola);
-    bola.body.collideWorldBounds = true;
+    juego.physics.arcade.enable(estrella);
+    estrella.body.collideWorldBounds = true;
     
-    // Añadir animación después de crear la bola
-    juego.add.tween(bola.scale).to({ x: 1.15, y: 1.15 }, 1200, Phaser.Easing.Elastic.Out, true, 0, -1, true);
+    // Añadir animación después de crear la estrella
+    juego.add.tween(estrella.scale).to({ x: 1.15, y: 1.15 }, 1200, Phaser.Easing.Elastic.Out, true, 0, -1, true);
+    
+    return estrella;  // Añadir return para consistencia
 }
 
-function crearPinchos() {
-    pinchos.removeAll();
+function crearRocas() {
+    rocas.removeAll();
     
-    for (var i = 0; i < numeroPinchos; i++) {
-        crearPinchoIndividual();
+    for (var i = 0; i < numeroRocas; i++) {
+        crearRocaIndividual();
     }
 }
 
-function crearPinchoIndividual() {
+function crearRocaIndividual() {
     var x, y;
     var intentos = 0;
     var posicionValida = false;
@@ -191,16 +216,16 @@ function crearPinchoIndividual() {
         y = juego.rnd.integerInRange(40, juego.height - 40);
         
         var distPersona = Phaser.Math.distance(x, y, persona.x, persona.y);
-        var distBola = Phaser.Math.distance(x, y, bola.x, bola.y);
+        var distEstrella = Phaser.Math.distance(x, y, estrella.x, estrella.y);
         
-        var cercaDeOtroPincho = false;
-        pinchos.forEach(function(pincho) {
-            if (Phaser.Math.distance(x, y, pincho.x, pincho.y) < 60) {
-                cercaDeOtroPincho = true;
+        var cercaDeOtraRoca = false;
+        rocas.forEach(function(roca) {
+            if (Phaser.Math.distance(x, y, roca.x, roca.y) < 60) {
+                cercaDeOtraRoca = true;
             }
         }, this);
         
-        if (distPersona > 100 && distBola > 80 && !cercaDeOtroPincho) {
+        if (distPersona > 100 && distEstrella > 80 && !cercaDeOtraRoca) {
             posicionValida = true;
         }
         intentos++;
@@ -211,84 +236,78 @@ function crearPinchoIndividual() {
         y = juego.rnd.integerInRange(40, juego.height - 40);
     }
     
-    var pincho = juego.add.sprite(x, y);
-    juego.physics.arcade.enable(pincho);
+    var roca = juego.add.sprite(x, y);
+    juego.physics.arcade.enable(roca);
     
     var graphics = new Phaser.Graphics(juego, 0, 0);
     
-    graphics.beginFill(0x8B4513);
-    graphics.drawRect(-12, 20, 24, 10);
+    // Dibujar una roca irregular
+    graphics.beginFill(0x696969);
+    
+    // Forma irregular de roca
+    graphics.moveTo(-15, 5);
+    graphics.lineTo(-10, -10);
+    graphics.lineTo(5, -15);
+    graphics.lineTo(15, -5);
+    graphics.lineTo(10, 10);
+    graphics.lineTo(-5, 15);
+    graphics.lineTo(-15, 5);
+    
     graphics.endFill();
     
-    graphics.beginFill(0xDC143C);
-    graphics.moveTo(0, -25);
-    graphics.lineTo(15, 20);
-    graphics.lineTo(-15, 20);
-    graphics.lineTo(0, -25);
+    // Añadir textura a la roca
+    graphics.beginFill(0x808080);
+    graphics.drawEllipse(-8, -3, 6, 4);
+    graphics.drawEllipse(5, 2, 5, 3);
+    graphics.drawEllipse(-2, 8, 4, 3);
     graphics.endFill();
     
-    graphics.beginFill(0xFF6347);
-    graphics.moveTo(0, -20);
-    graphics.lineTo(8, 15);
-    graphics.lineTo(-8, 15);
-    graphics.lineTo(0, -20);
+    // Sombra para dar profundidad
+    graphics.beginFill(0x404040);
+    graphics.drawEllipse(-12, 8, 8, 5);
     graphics.endFill();
     
-    graphics.beginFill(0xC0C0C0);
-    graphics.moveTo(0, -25);
-    graphics.lineTo(4, -15);
-    graphics.lineTo(-4, -15);
-    graphics.lineTo(0, -25);
-    graphics.endFill();
+    roca.addChild(graphics);
+    roca.body.setSize(25, 25, -12.5, -12.5);
     
-    graphics.beginFill(0xFFFFFF);
-    graphics.moveTo(0, -23);
-    graphics.lineTo(2, -17);
-    graphics.lineTo(-2, -17);
-    graphics.lineTo(0, -23);
-    graphics.endFill();
+    rocas.add(roca);
     
-    pincho.addChild(graphics);
-    pincho.body.setSize(20, 30, -10, -20);
+    roca.scale.set(0);
+    juego.add.tween(roca.scale).to({ x: 1, y: 1 }, 500, Phaser.Easing.Back.Out, true);
     
-    pinchos.add(pincho);
-    
-    pincho.scale.set(0);
-    juego.add.tween(pincho.scale).to({ x: 1, y: 1 }, 500, Phaser.Easing.Back.Out, true);
-    
-    return pincho;
+    return roca;
 }
 
-function alcanzarBola(persona, bola) {
+function alcanzarEstrella(persona, estrella) {
     if (gameOver) return;
     
-    crearEfectoParticulas(bola.x, bola.y);
+    crearEfectoParticulas(estrella.x, estrella.y);
     
-    // Guardar referencia a la bola actual antes de destruirla
-    var bolaX = bola.x;
-    var bolaY = bola.y;
+    // Guardar referencia a la estrella actual antes de destruirla
+    var estrellaX = estrella.x;
+    var estrellaY = estrella.y;
     
-    // Destruir la bola
-    bola.destroy();
-    bola = null; // Importante: limpiar la referencia
+    // Destruir la estrella
+    estrella.destroy();
+    estrella = null; // Importante: limpiar la referencia
     
-    numeroPinchos++;
+    numeroRocas++;
     
     mostrarMensajeNivel();
     
     nivelActual++;
     textoNivel.text = 'NIVEL ' + nivelActual;
     
-    // Crear nueva bola después de 2 segundos
+    // Crear nueva estrella después de 2 segundos
     juego.time.events.add(Phaser.Timer.SECOND * 2, function() {
-        crearBolaBonita();
-        crearPinchos();
+        crearEstrellaBonita();
+        crearRocas();
         
-        // La animación se añade automáticamente en crearBolaBonita()
+        // La animación se añade automáticamente en crearEstrellaBonita()
     }, this);
 }
 
-function tocarPincho(persona, pincho) {
+function tocarRoca(persona, roca) {
     if (gameOver) return;
     
     gameOver = true;
@@ -315,7 +334,7 @@ function mostrarMensajeNivel() {
         '¡FELICIDADES!', 
         { 
             font: 'bold 28px Arial', 
-            fill: '#FFD700', 
+            fill: '#27D3F5', 
             align: 'center',
             stroke: '#8B4513',
             strokeThickness: 4
@@ -326,7 +345,7 @@ function mostrarMensajeNivel() {
         'Nivel ' + nivelActual + ' Completado', 
         { 
             font: 'bold 20px Arial', 
-            fill: '#FFFFFF', 
+            fill: '#27D3F5', 
             align: 'center',
             stroke: '#000000',
             strokeThickness: 3
@@ -353,7 +372,7 @@ function mostrarGameOver() {
         '¡GAME OVER!', 
         { 
             font: 'bold 32px Arial', 
-            fill: '#FF0000', 
+            fill: '#9127F5', 
             align: 'center',
             stroke: '#000000',
             strokeThickness: 5
@@ -387,7 +406,7 @@ function mostrarGameOver() {
     
     var reiniciar = function() {
         nivelActual = 1;
-        numeroPinchos = 2;
+        numeroRocas = 2;
         juego.state.restart();
     };
     
